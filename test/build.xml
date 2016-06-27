@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     bunchserverCloud    
+     
+     boco                                                                
+     ====================================================================== -->
+<project name="bunchserver-build" default="dist" xmlns:artifact="urn:maven-artifact-ant">
+	<description>
+            bunchserver打包发布脚本
+    </description>
+	<property environment="SystemVariable" />
+	<property name="maven.home" value="/usr/local/apache-maven-3.2.5" />
+	<property name="dist.dir" value="dist" />
+	<property name="dist.lib" value="lib" />
+
+
+	<!--使用Maven2依赖管理 -->
+	<path id="maven-ant-tasks.classpath" path="tools/maven-ant-tasks-2.1.3.jar" />
+	<typedef resource="org/apache/maven/artifact/ant/antlib.xml" uri="urn:maven-artifact-ant" classpathref="maven-ant-tasks.classpath" />
+
+	<target name="init" description="initialized maven env">
+
+		<!--定义Maven2变量-->
+
+		
+		<artifact:pom id="parent.pom" file="pom.xml" />
+		
+		<artifact:dependencies pathId="maven.classpath" filesetid="maven.fileset" useScope="compile"> <!-- useScope="compile,package" -->
+			<pom refid="parent.pom" />
+		</artifact:dependencies>
+		<echo>maven env initialized</echo>
+			
+	
+	</target>
+
+	<target name="maven-init" depends="init">
+		<property name="maven.home" location="${maven.home}" />
+		<echo message="Maven Home set to ${maven.home}" />
+	</target>
+
+	<target name="maven-install" depends="maven-init" description="Run the install goal against the maven build">
+
+		<artifact:mvn pom="${basedir}/../pom.xml" mavenhome="${maven.home}">
+
+			<arg value="install" />
+			<arg value="-Dmaven.test.skip=true" />
+		</artifact:mvn>
+		<echo>mvn clean install -Dmaven.test.skip=true finished</echo>
+	</target>
+	<!-- ================================= 
+          target: dist              
+         ================================= -->
+	<target name="dist" depends="maven-install,clean,copy" description="mvn install and copy file">
+		<tstamp>
+			<format property="DSTAMP" pattern="yyyyMMddHHmm" />
+		</tstamp>
+		<zip destfile="${dist.dir}/${parent.pom.artifactId}-${parent.pom.version}-${DSTAMP}.zip">
+			<zipfileset dir="${dist.dir}/${parent.pom.artifactId}-${parent.pom.version}">
+			</zipfileset>
+		</zip>
+		<echo>zip finished</echo>
+	</target>
+
+
+
+	<target name="copy">
+
+		<copy todir="${dist.dir}/${parent.pom.artifactId}-${parent.pom.version}/lib">
+			<fileset refid="maven.fileset" />
+			<mapper type="flatten" />
+		</copy>
+
+		<copy todir="${dist.dir}/${parent.pom.artifactId}-${parent.pom.version}/lib/${lib.dir}">
+			<fileset file="${basedir}/../test/target/${main.pom.artifactId}-${main.pom.version}.jar">
+			</fileset>
+		</copy>
+
+
+		<echo>copy file finished</echo>
+	</target>
+
+	<target name="clean" description="clean dist dir">
+		<delete dir="${dist.dir}/${parent.pom.artifactId}-${parent.pom.version}">
+		</delete>
+		<echo>clean dist dir finished</echo>
+	</target>
+</project>
